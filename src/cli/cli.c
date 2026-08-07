@@ -2,7 +2,6 @@
 #include "uart_win.h"
 #include <Windows.h>
 
-
 static char cli_line_buf[CLI_LINE_BUF_MAX];
 static uint16_t cli_line_idx = 0;
 static uint16_t cli_cursor = 0;
@@ -10,22 +9,45 @@ static uint16_t cli_cursor = 0;
 static cli_input_state_t input_state = CLI_STATE_NORMAL;
 static cli_callback_t ctrl_c_handler = NULL;
 
+static void handlebackspace(void){
+    
+}
 
 void cliInit(void)
 {
-    cli_line_idx=0;
-    cli_cursor=0;
+    cli_line_idx = 0;
+    cli_cursor = 0;
     ctrl_c_handler = NULL;
 
     cliPrintf("\r\n==============================================\r\n");
     cliPrintf("           MSVC Windows Console CLI TERMINAL V0.1 \r\n");
 
     cliPrintf("CRL> ");
-
 }
 
 void cliMain(void)
 {
+    uint8_t rx_data;
+    if (uartReadBlock(0, &rx_data, 0xFFFFFFFF) == true)
+    {
+        switch (rx_data)
+        {
+        case 0x03:
+            cliPrintf("^C\r\nExiting application by Ctrl+c");
+            exit(0);
+            break;
+        case 'b':
+        case 127:
+            
+            break;
+        default:
+            if (32 <= rx_data && rx_data <= 126)
+            {
+                cliPrintf("%c", rx_data);
+            }
+            break;
+        }
+    }
 }
 
 void cliPrintf(char *fmt, ...)
@@ -33,11 +55,12 @@ void cliPrintf(char *fmt, ...)
     char buf[256];
     va_list args;
     int len;
-    va_start(args,fmt);
-    len = vsnprintf(buf,sizeof(buf),fmt,args);
+    va_start(args, fmt);
+    len = vsnprintf(buf, sizeof(buf), fmt, args);
     va_end(args);
-    if(len>0){
-            uartWrite(0,(uint8_t)buf,(uint32_t)len);
+    if (len > 0)
+    {
+        uartWrite(0, (uint8_t)buf, (uint32_t)len);
     }
 }
 
