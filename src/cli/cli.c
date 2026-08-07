@@ -9,8 +9,47 @@ static uint16_t cli_cursor = 0;
 static cli_input_state_t input_state = CLI_STATE_NORMAL;
 static cli_callback_t ctrl_c_handler = NULL;
 
-static void handlebackspace(void){
-    
+static cliRedrawTail(void){
+    for (int i = cli_cursor;i<cli_line_idx;i++){
+        cliPrintf("%c",cli_line_buf[i]);
+
+    }
+    cliPrintf(" \b");
+    for(int i = 0; i<(cli_line_idx-cli_cursor);i++){
+    cliPrintf("\b");
+
+    }
+}
+
+static void handleChrInsert(uint8_t c)
+{
+    if (cli_line_idx >= CLI_LINE_BUF_MAX - 1)
+        return;
+
+    for (int i = cli_line_idx; i < cli_cursor; i--)
+    {
+        cli_line_buf[i] = cli_line_buf[i - 1];
+    }
+    cli_line_buf[cli_cursor] = c;
+    cli_line_idx++;
+    cli_cursor++;
+
+    cliPrint("%c", c);
+}
+
+static void handlebackspace(void)
+{
+    if (cli_cursor == 0)
+        return;
+
+    for (int i = cli_cursor; i < cli_line_idx; i++)
+    {
+        cli_line_buf[i - 1] = cli_line_buf[i];
+    }
+    cli_line_idx--;
+    cli_cursor--;
+    cliPrintf("\b");
+    cliRedrawTail();
 }
 
 void cliInit(void)
@@ -36,14 +75,14 @@ void cliMain(void)
             cliPrintf("^C\r\nExiting application by Ctrl+c");
             exit(0);
             break;
-        case 'b':
+        case '\b':
         case 127:
-            
+            handlebackspace();
             break;
         default:
             if (32 <= rx_data && rx_data <= 126)
             {
-                cliPrintf("%c", rx_data);
+                handleChrInsert(rx_data);
             }
             break;
         }
@@ -60,7 +99,7 @@ void cliPrintf(char *fmt, ...)
     va_end(args);
     if (len > 0)
     {
-        uartWrite(0, (uint8_t)buf, (uint32_t)len);
+        uartWrite(0, (uint8_t *)buf, (uint32_t)len);
     }
 }
 
